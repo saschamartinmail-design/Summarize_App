@@ -5,7 +5,7 @@
  *   URL-Fragment (#…) an die App übergeben – Fragmente verlassen das Gerät nicht.
  * - Hält die App-Dateien im Cache, damit sie sofort startet.
  */
-const CACHE = 'kurzgefasst-v3';
+const CACHE = 'kurzgefasst-v4';
 const ASSETS = [
   './',
   './index.html',

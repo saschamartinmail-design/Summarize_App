@@ -1,12 +1,14 @@
 /**
  * Kurzgefasst – Backend (Google Apps Script)
  * ------------------------------------------
- * Nimmt eine URL entgegen, lädt den Seitentext und lässt ihn von Gemini
- * zusammenfassen.
+ * Nimmt eine URL entgegen, lädt den Seitentext und lässt ihn von Claude
+ * oder Gemini zusammenfassen.
  *
  * Skripteigenschaften (Projekteinstellungen → Skripteigenschaften):
  *   ACCESS_KEY         Persönlicher Zugangsschlüssel (mit zugangsschluesselErzeugen() anlegen)
+ *   ANTHROPIC_API_KEY  API-Schlüssel von console.anthropic.com
  *   GEMINI_API_KEY     API-Schlüssel von aistudio.google.com
+ *   CLAUDE_MODEL       optional, Standard: claude-sonnet-5-5
  *   GEMINI_MODEL       optional, Standard: gemini-flash-latest
  *
  * Datenschutz: Dieses Skript speichert und protokolliert KEINE URLs,
@@ -14,7 +16,10 @@
  * console.log-/Logger-Aufrufe im Anfrageweg.
  */
 
-const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest';
+const DEFAULTS = {
+  CLAUDE_MODEL: 'claude-sonnet-5-5',
+  GEMINI_MODEL: 'gemini-flash-latest'
+};
 const MAX_PAGE_CHARS = 60000;        // so viel Seitentext geht maximal an die KI
 const RATE_LIMIT_PER_10_MIN = 30;    // Schutz vor Missbrauch und Kostenexplosion
 
@@ -34,17 +39,24 @@ function doPost(e) {
 
     // Verbindungstest aus den App-Einstellungen
     if (req.action === 'ping') {
-      return json_({ ok: true, gemini: !!props.getProperty('GEMINI_API_KEY') });
+      return json_({
+        ok: true,
+        claude: !!props.getProperty('ANTHROPIC_API_KEY'),
+        gemini: !!props.getProperty('GEMINI_API_KEY')
+      });
     }
 
     const url = validateUrl_(req.url);
+    const provider = req.provider === 'gemini' ? 'gemini' : 'claude';
     const length = req.length === 'long' ? 'long' : 'short';
 
     const page = fetchPage_(url);
     const prompt = buildPrompt_(page, url, length);
-    const summary = callGemini_(prompt, props);
+    const summary = provider === 'gemini'
+      ? callGemini_(prompt, props)
+      : callClaude_(prompt, props);
 
-    return json_({ ok: true, title: page.title, summary: summary });
+    return json_({ ok: true, title: page.title, summary: summary, provider: provider });
   } catch (err) {
     return json_({ ok: false, error: String((err && err.message) || err) });
   }
@@ -202,13 +214,50 @@ function buildPrompt_(page, url, length) {
   return { system: system, user: user };
 }
 
-/* ===================== Gemini ===================== */
+/* ===================== KI-Anbieter ===================== */
+
+function callClaude_(prompt, props) {
+  const key = props.getProperty('ANTHROPIC_API_KEY');
+  if (!key) throw new Error('Claude ist nicht eingerichtet (ANTHROPIC_API_KEY fehlt).');
+
+  const resp = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post',
+    contentType: 'application/json',
+    muteHttpExceptions: true,
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    payload: JSON.stringify({
+      model: props.getProperty('CLAUDE_MODEL') || DEFAULTS.CLAUDE_MODEL,
+      max_tokens: 1500,
+      system: prompt.system,
+      messages: [{ role: 'user', content: prompt.user }]
+    })
+  });
+
+  const data = parseJson_(resp.getContentText());
+  if (resp.getResponseCode() === 401) {
+    throw new Error('Claude lehnt den API-Schlüssel ab – ANTHROPIC_API_KEY prüfen.');
+  }
+  if (resp.getResponseCode() !== 200) {
+    const msg = (data && data.error && data.error.message) || '';
+    if (/credit balance/i.test(msg)) {
+      throw new Error('Claude-API-Guthaben aufgebraucht – unter console.anthropic.com → Billing aufladen.');
+    }
+    throw new Error('Claude-Fehler (' + resp.getResponseCode() + '): ' +
+      ((data && data.error && data.error.message) || 'unbekannt'));
+  }
+  const text = (data.content || [])
+    .filter(function (b) { return b.type === 'text'; })
+    .map(function (b) { return b.text; })
+    .join('\n').trim();
+  if (!text) throw new Error('Claude hat keine Zusammenfassung geliefert.');
+  return text;
+}
 
 function callGemini_(prompt, props) {
   const key = props.getProperty('GEMINI_API_KEY');
   if (!key) throw new Error('Gemini ist nicht eingerichtet (GEMINI_API_KEY fehlt).');
 
-  const model = props.getProperty('GEMINI_MODEL') || DEFAULT_GEMINI_MODEL;
+  const model = props.getProperty('GEMINI_MODEL') || DEFAULTS.GEMINI_MODEL;
   const resp = UrlFetchApp.fetch(
     'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
       method: 'post',
@@ -223,6 +272,9 @@ function callGemini_(prompt, props) {
     });
 
   const data = parseJson_(resp.getContentText());
+  if (resp.getResponseCode() === 429) {
+    throw new Error('Gemini-Kontingent erschöpft – bitte Claude nehmen oder später erneut versuchen.');
+  }
   if (resp.getResponseCode() !== 200) {
     throw new Error('Gemini-Fehler (' + resp.getResponseCode() + '): ' +
       ((data && data.error && data.error.message) || 'unbekannt'));

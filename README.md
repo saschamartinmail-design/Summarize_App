@@ -1,6 +1,6 @@
 # Kurzgefasst – Webseiten per „Teilen“ zusammenfassen
 
-In Chrome auf dem Handy: **Teilen → Kurzgefasst** – die Zusammenfassung von Gemini startet sofort.
+In Chrome auf dem Handy: **Teilen → Kurzgefasst → Claude oder Gemini**.
 
 ```
 Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal)
@@ -9,7 +9,7 @@ Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal
                      Apps-Script-Backend (dein Google-Konto)
                                 │  lädt Seitentext
                                 ▼
-                          Gemini-API
+                     Claude-API  oder  Gemini-API
 ```
 
 ## Aufbau dieses Repos
@@ -22,13 +22,18 @@ Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal
 
 1. **script.google.com** öffnen → *Neues Projekt* → Namen geben, z. B. „Kurzgefasst Backend“.
 2. Den Inhalt von `Code.gs` komplett in den Editor einfügen und speichern.
-3. **API-Schlüssel besorgen:** aistudio.google.com → *Get API key*.
-   **Datenschutz:** Im kostenlosen Kontingent darf Google Eingaben zur Produktverbesserung nutzen.
-   Aktiviere die Abrechnung für das Projekt, dann gilt das nicht.
+3. **API-Schlüssel besorgen:**
+   - Claude: console.anthropic.com → *API Keys* → neuen Schlüssel anlegen und unter *Billing* Guthaben aufladen.
+     **Wichtig:** Das claude.ai-Abo (Pro/Max) gilt nicht für die API – die API wird separat nach Verbrauch abgerechnet.
+   - Gemini: aistudio.google.com → *Get API key*.
+     **Datenschutz:** Im kostenlosen Kontingent darf Google Eingaben zur Produktverbesserung nutzen.
+     Aktiviere die Abrechnung für das Projekt, dann gilt das nicht.
 4. Links **Projekteinstellungen (Zahnrad) → Skripteigenschaften** → hinzufügen:
    | Eigenschaft | Wert |
    |---|---|
+   | `ANTHROPIC_API_KEY` | dein Claude-Schlüssel |
    | `GEMINI_API_KEY` | dein Gemini-Schlüssel |
+   | `CLAUDE_MODEL` *(optional)* | Standard: `claude-sonnet-5-5` (günstiger: `claude-haiku-5-5`) |
    | `GEMINI_MODEL` *(optional)* | Standard: `gemini-flash-latest` |
 5. Im Editor oben die Funktion **`zugangsschluesselErzeugen`** auswählen → *Ausführen* → Berechtigungen bestätigen.
    Im Ausführungsprotokoll steht dein **Zugangsschlüssel** – kopieren.
@@ -57,8 +62,8 @@ Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal
 4. Fertig. „Kurzgefasst“ erscheint jetzt im **Teilen-Menü**.
 
 ## Benutzung
-Auf einer Seite in Chrome **⋮ → Teilen → Kurzgefasst**. Die Kurzfassung startet sofort.
-Für die lange Fassung *Ausführlich* wählen und erneut **Zusammenfassen** antippen.
+Auf einer Seite in Chrome **⋮ → Teilen → Kurzgefasst** → *Kurz* oder *Ausführlich* wählen →
+**Claude** oder **Gemini** antippen.
 
 ---
 
@@ -70,8 +75,9 @@ Für die lange Fassung *Ausführlich* wählen und erneut **Zusammenfassen** anti
 - **API-Schlüssel** liegen ausschließlich in den Skripteigenschaften, nie im Code.
 - **Zugangsschlüssel** (zufällig, 64 Zeichen) schützt vor fremder Nutzung, dazu ein Limit von 30 Anfragen pro 10 Minuten.
 - **Alles über HTTPS**, Daten im Anfrage-Body. Die App hat eine strenge Content-Security-Policy.
-- **Was trotzdem jemand sieht:** Google – Apps Script ruft die Seite ab, Gemini verarbeitet den Inhalt.
-  Die bezahlte Gemini-API nutzt Eingaben nicht zum Training, das kostenlose Kontingent schon.
+- **Was trotzdem jemand sieht:** Google (Apps Script ruft die Seite ab) und der gewählte KI-Anbieter
+  (verarbeitet den Inhalt). Die Claude-API nutzt API-Daten standardmäßig nicht zum Training,
+  die bezahlte Gemini-API ebenfalls nicht – das kostenlose Gemini-Kontingent schon.
 
 ## Grenzen
 - Seiten hinter **Login oder Paywall** kann das Backend nicht lesen.
@@ -84,9 +90,12 @@ Für die lange Fassung *Ausführlich* wählen und erneut **Zusammenfassen** anti
 | „Zugang verweigert“ | Zugangsschlüssel in den App-Einstellungen prüfen. |
 | „Unerwartete Antwort vom Backend“ | Bereitstellung muss *Zugriff: Jeder* haben; URL muss auf `/exec` enden. |
 | „Gemini-Fehler (404)“ | Modellname `GEMINI_MODEL` in den Skripteigenschaften prüfen. |
+| „Gemini-Kontingent erschöpft“ | Freies Kontingent aufgebraucht – Claude nehmen oder später erneut versuchen. |
+| „Claude-API-Guthaben aufgebraucht“ | console.anthropic.com → *Billing* → Guthaben aufladen. |
+| „Claude ist nicht eingerichtet“ | Skripteigenschaft `ANTHROPIC_API_KEY` fehlt. |
 
 ## Änderungen später
 - **Backend geändert?** *Bereitstellen → Bereitstellungen verwalten → Bearbeiten → Version: Neue Version*.
   Die URL bleibt gleich.
-- **App geändert?** In `sw.js` die Zeile `const CACHE = 'kurzgefasst-v3'` hochzählen (v3, v4 …),
+- **App geändert?** In `sw.js` die Zeile `const CACHE = 'kurzgefasst-v4'` hochzählen (v4, v5 …),
   damit das Handy die neue Version lädt.
