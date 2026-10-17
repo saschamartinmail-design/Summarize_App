@@ -105,5 +105,5 @@ Auf einer Seite in Chrome **⋮ → Teilen → Kurzgefasst** → *Kurz* oder *Au
 ## Änderungen später
 - **Backend geändert?** *Bereitstellen → Bereitstellungen verwalten → Bearbeiten → Version: Neue Version*.
   Die URL bleibt gleich.
-- **App geändert?** In `sw.js` die Zeile `const CACHE = 'kurzgefasst-v4'` hochzählen (v5, v6 …),
+- **App geändert?** In `sw.js` die Zeile `const CACHE = 'kurzgefasst-v5'` hochzählen (v6, v7 …),
   damit das Handy die neue Version lädt.
