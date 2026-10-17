@@ -18,7 +18,7 @@
   };
   const providerButtons = Array.from(document.querySelectorAll('.provider'));
   const segButtons = Array.from(document.querySelectorAll('.seg'));
-  const NAMES = { claude: 'Claude', gemini: 'Gemini' };
+  const NAMES = { claude: 'Claude', gemini: 'Gemini', groq: 'Groq' };
   const TIMEOUT_MS = 90000;
 
   let length = 'short';
@@ -60,6 +60,7 @@
       const parts = [];
       parts.push('Claude ' + (data.claude ? '✓' : '– nicht eingerichtet'));
       parts.push('Gemini ' + (data.gemini ? '✓' : '– nicht eingerichtet'));
+      parts.push('Groq ' + (data.groq ? '✓' : '– nicht eingerichtet'));
       setPing('Verbindung steht. ' + parts.join(' · '), 'ok');
     } catch (e) {
       setPing(e.message, 'bad');

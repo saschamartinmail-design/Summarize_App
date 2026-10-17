@@ -1,15 +1,18 @@
 /**
  * Kurzgefasst – Backend (Google Apps Script)
  * ------------------------------------------
- * Nimmt eine URL entgegen, lädt den Seitentext und lässt ihn von Claude
- * oder Gemini zusammenfassen.
+ * Nimmt eine URL entgegen, lädt den Seitentext und lässt ihn von Claude,
+ * Gemini oder Groq zusammenfassen.
  *
  * Skripteigenschaften (Projekteinstellungen → Skripteigenschaften):
  *   ACCESS_KEY         Persönlicher Zugangsschlüssel (mit zugangsschluesselErzeugen() anlegen)
  *   ANTHROPIC_API_KEY  API-Schlüssel von console.anthropic.com
  *   GEMINI_API_KEY     API-Schlüssel von aistudio.google.com
+ *   GROQ_API_KEY       API-Schlüssel von console.groq.com (kostenlos)
  *   CLAUDE_MODEL       optional, Standard: claude-sonnet-5-5
  *   GEMINI_MODEL       optional, Standard: gemini-flash-latest
+ *   GROQ_MODEL         optional, Standard: openai/gpt-oss-120b
+ *   GROQ_MAX_CHARS     optional, Standard: 18000 (Seitentext für Groq, wegen Gratis-Limit pro Minute)
  *
  * Datenschutz: Dieses Skript speichert und protokolliert KEINE URLs,
  * Seiteninhalte oder Zusammenfassungen. Es gibt bewusst keine
@@ -18,8 +21,11 @@
 
 const DEFAULTS = {
   CLAUDE_MODEL: 'claude-sonnet-5-5',
-  GEMINI_MODEL: 'gemini-flash-latest'
+  GEMINI_MODEL: 'gemini-flash-latest',
+  GROQ_MODEL: 'openai/gpt-oss-120b',
+  GROQ_MAX_CHARS: 18000
 };
+const PROVIDERS = ['claude', 'gemini', 'groq'];
 const MAX_PAGE_CHARS = 60000;        // so viel Seitentext geht maximal an die KI
 const RATE_LIMIT_PER_10_MIN = 30;    // Schutz vor Missbrauch und Kostenexplosion
 
@@ -42,19 +48,26 @@ function doPost(e) {
       return json_({
         ok: true,
         claude: !!props.getProperty('ANTHROPIC_API_KEY'),
-        gemini: !!props.getProperty('GEMINI_API_KEY')
+        gemini: !!props.getProperty('GEMINI_API_KEY'),
+        groq: !!props.getProperty('GROQ_API_KEY')
       });
     }
 
     const url = validateUrl_(req.url);
-    const provider = req.provider === 'gemini' ? 'gemini' : 'claude';
+    const provider = PROVIDERS.indexOf(req.provider) >= 0 ? req.provider : 'claude';
     const length = req.length === 'long' ? 'long' : 'short';
 
     const page = fetchPage_(url);
-    const prompt = buildPrompt_(page, url, length);
-    const summary = provider === 'gemini'
-      ? callGemini_(prompt, props)
-      : callClaude_(prompt, props);
+    let summary;
+    if (provider === 'groq') {
+      // Das Gratis-Kontingent von Groq erlaubt nur wenige Tokens pro Minute: Seitentext kürzen.
+      const maxChars = Number(props.getProperty('GROQ_MAX_CHARS')) || DEFAULTS.GROQ_MAX_CHARS;
+      const short = { title: page.title, text: page.text.slice(0, maxChars) };
+      summary = callGroq_(buildPrompt_(short, url, length), props);
+    } else {
+      const prompt = buildPrompt_(page, url, length);
+      summary = provider === 'gemini' ? callGemini_(prompt, props) : callClaude_(prompt, props);
+    }
 
     return json_({ ok: true, title: page.title, summary: summary, provider: provider });
   } catch (err) {
@@ -289,6 +302,51 @@ function callGemini_(prompt, props) {
     const reason = data.promptFeedback && data.promptFeedback.blockReason;
     throw new Error(reason ? 'Gemini hat die Anfrage blockiert (' + reason + ').' : 'Gemini hat keine Zusammenfassung geliefert.');
   }
+  return text;
+}
+
+function callGroq_(prompt, props) {
+  const key = props.getProperty('GROQ_API_KEY');
+  if (!key) throw new Error('Groq ist nicht eingerichtet (GROQ_API_KEY fehlt).');
+
+  const model = props.getProperty('GROQ_MODEL') || DEFAULTS.GROQ_MODEL;
+  const body = {
+    model: model,
+    messages: [
+      { role: 'system', content: prompt.system },
+      { role: 'user', content: prompt.user }
+    ],
+    temperature: 0.3,
+    max_completion_tokens: 2000
+  };
+  // gpt-oss denkt vor der Antwort nach: wenig Nachdenken spart Tokens, Gedanken nicht mitschicken.
+  if (/gpt-oss/i.test(model)) {
+    body.reasoning_effort = 'low';
+    body.include_reasoning = false;
+  }
+
+  const resp = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'post',
+    contentType: 'application/json',
+    muteHttpExceptions: true,
+    headers: { 'Authorization': 'Bearer ' + key },
+    payload: JSON.stringify(body)
+  });
+
+  const code = resp.getResponseCode();
+  const data = parseJson_(resp.getContentText());
+  if (code === 401) throw new Error('Groq lehnt den API-Schlüssel ab – GROQ_API_KEY prüfen.');
+  if (code === 413 || code === 429) {
+    throw new Error('Groq-Gratislimit erreicht – kurz warten oder Claude/Gemini nehmen. ' +
+      'Passiert das bei jeder langen Seite: GROQ_MAX_CHARS verkleinern (z. B. 12000).');
+  }
+  if (code !== 200) {
+    throw new Error('Groq-Fehler (' + code + '): ' +
+      ((data && data.error && data.error.message) || 'unbekannt'));
+  }
+  const msg = data.choices && data.choices[0] && data.choices[0].message;
+  const text = ((msg && msg.content) || '').trim();
+  if (!text) throw new Error('Groq hat keine Zusammenfassung geliefert.');
   return text;
 }
 

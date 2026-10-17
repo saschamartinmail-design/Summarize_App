@@ -9,6 +9,8 @@
   --claude-soft: #fbeee8;
   --gemini: #3f6ee8;
   --gemini-soft: #e8eefd;
+  --groq: #1f8a5b;
+  --groq-soft: #e4f5ec;
   --danger: #c0392b;
   --danger-soft: #fdecea;
   --radius: 16px;
@@ -25,6 +27,8 @@
     --claude-soft: #3a2620;
     --gemini: #7ea2ff;
     --gemini-soft: #1f2c52;
+    --groq: #5fd39a;
+    --groq-soft: #173829;
     --danger: #ff8a7a;
     --danger-soft: #3d1f1d;
   }
@@ -78,26 +82,30 @@ input:focus { border-color: var(--accent); }
 .seg { flex: 1; border: 0; background: transparent; padding: 8px; border-radius: 9px; color: var(--muted); font-weight: 600; }
 .seg.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 
-.providers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.providers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .provider {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  padding: 18px 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 0;
+  padding: 16px 6px;
   border-radius: var(--radius);
   border: 2px solid transparent;
-  text-align: left;
+  text-align: center;
   transition: transform .08s ease;
 }
 .provider:active { transform: scale(.97); }
 .provider:disabled { opacity: .5; cursor: default; }
-.provider .p-name { font-size: 20px; font-weight: 700; }
+.provider .p-name { font-size: 18px; font-weight: 700; }
 .provider .p-sub { font-size: 13px; color: var(--muted); }
 .provider.claude { background: var(--claude-soft); }
 .provider.claude .p-name { color: var(--claude); }
 .provider.gemini { background: var(--gemini-soft); }
 .provider.gemini .p-name { color: var(--gemini); }
+.provider.groq { background: var(--groq-soft); }
+.provider.groq .p-name { color: var(--groq); }
 .provider.busy { border-color: currentColor; }
 .provider.claude.busy { border-color: var(--claude); }
 .provider.gemini.busy { border-color: var(--gemini); }
+.provider.groq.busy { border-color: var(--groq); }
 
 .status { display: flex; align-items: center; gap: 12px; color: var(--muted); padding: 4px 4px; }
 .spinner {
@@ -113,6 +121,7 @@ input:focus { border-color: var(--accent); }
 .badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
 .badge.claude { background: var(--claude-soft); color: var(--claude); }
 .badge.gemini { background: var(--gemini-soft); color: var(--gemini); }
+.badge.groq { background: var(--groq-soft); color: var(--groq); }
 .result-actions { display: flex; gap: 4px; }
 .text-btn { background: none; border: 0; color: var(--accent); font-weight: 600; font-size: 14px; padding: 6px 8px; text-decoration: none; border-radius: 8px; }
 .text-btn:active { background: var(--bg); }

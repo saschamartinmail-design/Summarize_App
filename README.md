@@ -1,6 +1,6 @@
 # Kurzgefasst – Webseiten per „Teilen“ zusammenfassen
 
-In Chrome auf dem Handy: **Teilen → Kurzgefasst → Claude oder Gemini**.
+In Chrome auf dem Handy: **Teilen → Kurzgefasst → Claude, Gemini oder Groq**.
 
 ```
 Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal)
@@ -9,7 +9,7 @@ Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal
                      Apps-Script-Backend (dein Google-Konto)
                                 │  lädt Seitentext
                                 ▼
-                     Claude-API  oder  Gemini-API
+              Claude-API  ·  Gemini-API  ·  Groq-API
 ```
 
 ## Aufbau dieses Repos
@@ -28,13 +28,18 @@ Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal
    - Gemini: aistudio.google.com → *Get API key*.
      **Datenschutz:** Im kostenlosen Kontingent darf Google Eingaben zur Produktverbesserung nutzen.
      Aktiviere die Abrechnung für das Projekt, dann gilt das nicht.
+   - Groq (kostenlos): console.groq.com → anmelden → *API Keys* → *Create API Key*.
+     Groq nutzt Eingaben laut eigenen Bedingungen nicht zum Training.
 4. Links **Projekteinstellungen (Zahnrad) → Skripteigenschaften** → hinzufügen:
    | Eigenschaft | Wert |
    |---|---|
    | `ANTHROPIC_API_KEY` | dein Claude-Schlüssel |
    | `GEMINI_API_KEY` | dein Gemini-Schlüssel |
+   | `GROQ_API_KEY` | dein Groq-Schlüssel |
    | `CLAUDE_MODEL` *(optional)* | Standard: `claude-sonnet-5-5` (günstiger: `claude-haiku-5-5`) |
    | `GEMINI_MODEL` *(optional)* | Standard: `gemini-flash-latest` |
+   | `GROQ_MODEL` *(optional)* | Standard: `openai/gpt-oss-120b` |
+   | `GROQ_MAX_CHARS` *(optional)* | Standard: `18000` – Seitentext für Groq, wegen des Gratis-Limits pro Minute gekürzt |
 5. Im Editor oben die Funktion **`zugangsschluesselErzeugen`** auswählen → *Ausführen* → Berechtigungen bestätigen.
    Im Ausführungsprotokoll steht dein **Zugangsschlüssel** – kopieren.
 6. **Bereitstellen → Neue Bereitstellung** → Typ *Web-App*:
@@ -63,7 +68,7 @@ Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal
 
 ## Benutzung
 Auf einer Seite in Chrome **⋮ → Teilen → Kurzgefasst** → *Kurz* oder *Ausführlich* wählen →
-**Claude** oder **Gemini** antippen.
+**Claude**, **Gemini** oder **Groq** antippen.
 
 ---
 
@@ -78,6 +83,7 @@ Auf einer Seite in Chrome **⋮ → Teilen → Kurzgefasst** → *Kurz* oder *Au
 - **Was trotzdem jemand sieht:** Google (Apps Script ruft die Seite ab) und der gewählte KI-Anbieter
   (verarbeitet den Inhalt). Die Claude-API nutzt API-Daten standardmäßig nicht zum Training,
   die bezahlte Gemini-API ebenfalls nicht – das kostenlose Gemini-Kontingent schon.
+  Groq nutzt Eingaben laut Vertrag nicht zum Training, auch im Gratis-Plan nicht.
 
 ## Grenzen
 - Seiten hinter **Login oder Paywall** kann das Backend nicht lesen.
@@ -93,9 +99,11 @@ Auf einer Seite in Chrome **⋮ → Teilen → Kurzgefasst** → *Kurz* oder *Au
 | „Gemini-Kontingent erschöpft“ | Freies Kontingent aufgebraucht – Claude nehmen oder später erneut versuchen. |
 | „Claude-API-Guthaben aufgebraucht“ | console.anthropic.com → *Billing* → Guthaben aufladen. |
 | „Claude ist nicht eingerichtet“ | Skripteigenschaft `ANTHROPIC_API_KEY` fehlt. |
+| „Groq ist nicht eingerichtet“ | Skripteigenschaft `GROQ_API_KEY` fehlt. |
+| „Groq-Gratislimit erreicht“ | Kurz warten. Passiert es bei jeder langen Seite: `GROQ_MAX_CHARS` auf z. B. `12000` setzen. |
 
 ## Änderungen später
 - **Backend geändert?** *Bereitstellen → Bereitstellungen verwalten → Bearbeiten → Version: Neue Version*.
   Die URL bleibt gleich.
-- **App geändert?** In `sw.js` die Zeile `const CACHE = 'kurzgefasst-v4'` hochzählen (v4, v5 …),
+- **App geändert?** In `sw.js` die Zeile `const CACHE = 'kurzgefasst-v4'` hochzählen (v5, v6 …),
   damit das Handy die neue Version lädt.
