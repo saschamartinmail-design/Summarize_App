@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1729">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+  <title>Kurzgefasst</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="icon-192.png" alt="" width="28" height="28">
+      <span>Kurzgefasst</span>
+    </div>
+    <button id="btnSettings" class="icon-btn" aria-label="Einstellungen">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>
+    </button>
+  </header>
+
+  <main>
+    <section class="card" id="pageCard">
+      <label for="urlInput" class="label">Seite</label>
+      <div id="pageTitle" class="page-title" hidden></div>
+      <input id="urlInput" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+             placeholder="https://… (oder in Chrome über „Teilen“ senden)">
+      <div class="length" role="radiogroup" aria-label="Länge">
+        <button class="seg active" data-length="short" role="radio" aria-checked="true">Kurz</button>
+        <button class="seg" data-length="long" role="radio" aria-checked="false">Ausführlich</button>
+      </div>
+    </section>
+
+    <section class="choose">
+      <p class="label">Zusammenfassen mit</p>
+      <div class="providers">
+        <button class="provider claude" data-provider="claude">
+          <span class="p-name">Claude</span>
+          <span class="p-sub">Anthropic</span>
+        </button>
+        <button class="provider gemini" data-provider="gemini">
+          <span class="p-name">Gemini</span>
+          <span class="p-sub">Google</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="status" class="status" hidden>
+      <div class="spinner" aria-hidden="true"></div>
+      <span id="statusText">Lese die Seite …</span>
+    </section>
+
+    <section id="error" class="error" hidden></section>
+
+    <section id="result" class="card result" hidden>
+      <div class="result-head">
+        <span id="resultBadge" class="badge"></span>
+        <div class="result-actions">
+          <button id="btnCopy" class="text-btn">Kopieren</button>
+          <a id="linkOriginal" class="text-btn" target="_blank" rel="noopener noreferrer">Original</a>
+        </div>
+      </div>
+      <h2 id="resultTitle" class="result-title"></h2>
+      <div id="resultBody" class="md"></div>
+    </section>
+
+    <p class="privacy">🔒 Es wird nichts gespeichert – weder in der App noch im Backend.</p>
+  </main>
+
+  <dialog id="settings">
+    <form method="dialog" class="settings-form" id="settingsForm">
+      <h2>Einstellungen</h2>
+      <label class="label" for="backendUrl">Backend-URL (Apps Script, endet auf /exec)</label>
+      <input id="backendUrl" type="url" autocomplete="off" spellcheck="false"
+             placeholder="https://script.google.com/macros/s/…/exec">
+      <label class="label" for="accessKey">Zugangsschlüssel</label>
+      <input id="accessKey" type="password" autocomplete="off" spellcheck="false">
+      <p class="hint">Beides bleibt nur auf diesem Gerät gespeichert.</p>
+      <div id="pingResult" class="hint"></div>
+      <div class="dialog-actions">
+        <button type="button" id="btnPing" class="secondary">Verbindung testen</button>
+        <button type="submit" id="btnSave" class="primary" value="save">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
