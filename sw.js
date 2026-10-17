@@ -5,13 +5,13 @@
  *   URL-Fragment (#…) an die App übergeben – Fragmente verlassen das Gerät nicht.
  * - Hält die App-Dateien im Cache, damit sie sofort startet.
  */
-const CACHE = 'kurzgefasst-v2';
+const CACHE = 'kurzgefasst-v3';
 const ASSETS = [
   './',
   './index.html',
   './app.js',
   './style.css',
-  './manifest.json',
+  './app.webmanifest',
   './icon-192.png',
   './icon-512.png'
 ];

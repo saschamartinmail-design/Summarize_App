@@ -88,5 +88,5 @@ Für die lange Fassung *Ausführlich* wählen und erneut **Zusammenfassen** anti
 ## Änderungen später
 - **Backend geändert?** *Bereitstellen → Bereitstellungen verwalten → Bearbeiten → Version: Neue Version*.
   Die URL bleibt gleich.
-- **App geändert?** In `sw.js` die Zeile `const CACHE = 'kurzgefasst-v2'` hochzählen (v3, v4 …),
+- **App geändert?** In `sw.js` die Zeile `const CACHE = 'kurzgefasst-v3'` hochzählen (v3, v4 …),
   damit das Handy die neue Version lädt.
