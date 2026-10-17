@@ -46,7 +46,7 @@ Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal
    Das Repo darf **öffentlich** sein – es enthält keinerlei Schlüssel oder Daten.
    (GitHub Pages für private Repos braucht einen bezahlten GitHub-Plan.)
 2. **Settings → Pages** → *Source: Deploy from a branch* → Branch `main`, Ordner `/ (root)` → *Save*.
-3. Nach ca. 1 Minute ist die App erreichbar unter `https://saschamartinmail-design.github.io/Kurzgefasst_App/`.
+3. Nach ca. 1 Minute ist die App erreichbar unter `https://saschamartinmail-design.github.io/Summarize_App/`.
 
 ## 3. Auf dem Handy installieren
 
