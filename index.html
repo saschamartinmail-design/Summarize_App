@@ -36,19 +36,10 @@
       </div>
     </section>
 
-    <section class="choose">
-      <p class="label">Zusammenfassen mit</p>
-      <div class="providers">
-        <button class="provider claude" data-provider="claude">
-          <span class="p-name">Claude</span>
-          <span class="p-sub">Anthropic</span>
-        </button>
-        <button class="provider gemini" data-provider="gemini">
-          <span class="p-name">Gemini</span>
-          <span class="p-sub">Google</span>
-        </button>
-      </div>
-    </section>
+    <button id="btnSummarize" class="summarize">
+      <span class="s-name">Zusammenfassen</span>
+      <span class="s-sub">mit Gemini</span>
+    </button>
 
     <section id="status" class="status" hidden>
       <div class="spinner" aria-hidden="true"></div>
@@ -59,7 +50,7 @@
 
     <section id="result" class="card result" hidden>
       <div class="result-head">
-        <span id="resultBadge" class="badge"></span>
+        <span class="badge">Gemini</span>
         <div class="result-actions">
           <button id="btnCopy" class="text-btn">Kopieren</button>
           <a id="linkOriginal" class="text-btn" target="_blank" rel="noopener noreferrer">Original</a>

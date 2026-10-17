@@ -1,7 +1,7 @@
 {
   "name": "Kurzgefasst",
   "short_name": "Kurzgefasst",
-  "description": "Webseiten per Teilen-Menü mit Claude oder Gemini zusammenfassen.",
+  "description": "Webseiten per Teilen-Menü mit Gemini zusammenfassen.",
   "lang": "de",
   "start_url": "./",
   "scope": "./",

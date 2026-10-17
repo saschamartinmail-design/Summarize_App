@@ -10,15 +10,13 @@
   const els = {
     url: $('urlInput'), pageTitle: $('pageTitle'),
     status: $('status'), statusText: $('statusText'), error: $('error'),
-    result: $('result'), resultBadge: $('resultBadge'), resultTitle: $('resultTitle'),
+    result: $('result'), resultTitle: $('resultTitle'), btnSummarize: $('btnSummarize'),
     resultBody: $('resultBody'), linkOriginal: $('linkOriginal'), btnCopy: $('btnCopy'),
     settings: $('settings'), backendUrl: $('backendUrl'), accessKey: $('accessKey'),
     pingResult: $('pingResult'), btnPing: $('btnPing'), btnSettings: $('btnSettings'),
     settingsForm: $('settingsForm')
   };
-  const providerButtons = Array.from(document.querySelectorAll('.provider'));
   const segButtons = Array.from(document.querySelectorAll('.seg'));
-  const NAMES = { claude: 'Claude', gemini: 'Gemini' };
   const TIMEOUT_MS = 90000;
 
   let length = 'short';
@@ -57,10 +55,8 @@
     try {
       const data = await callBackend(els.backendUrl.value.trim(), { key: els.accessKey.value.trim(), action: 'ping' });
       if (!data.ok) return setPing(data.error || 'Fehler', 'bad');
-      const parts = [];
-      parts.push('Claude ' + (data.claude ? '✓' : '– nicht eingerichtet'));
-      parts.push('Gemini ' + (data.gemini ? '✓' : '– nicht eingerichtet'));
-      setPing('Verbindung steht. ' + parts.join(' · '), 'ok');
+      if (!data.gemini) return setPing('Verbindung steht, aber Gemini ist nicht eingerichtet (GEMINI_API_KEY fehlt).', 'bad');
+      setPing('Verbindung steht. Gemini ✓', 'ok');
     } catch (e) {
       setPing(e.message, 'bad');
     }
@@ -90,6 +86,10 @@
       els.pageTitle.hidden = false;
     }
     resetOutput();
+
+    // Mit nur einem Anbieter gibt es nichts zu wählen: direkt loslegen.
+    const s = settings();
+    if (url && s.backendUrl && s.accessKey) summarize();
   }
 
   /* ---------- Länge ---------- */
@@ -105,9 +105,10 @@
 
   /* ---------- Zusammenfassen ---------- */
 
-  providerButtons.forEach((btn) => btn.addEventListener('click', () => summarize(btn.dataset.provider, btn)));
+  els.btnSummarize.addEventListener('click', () => summarize());
 
-  async function summarize(provider, btn) {
+  async function summarize() {
+    if (els.btnSummarize.disabled) return;
     const s = settings();
     if (!s.backendUrl || !s.accessKey) { openSettings(); return; }
 
@@ -118,19 +119,20 @@
     }
 
     resetOutput();
-    setBusy(true, btn);
-    els.statusText.textContent = NAMES[provider] + ' liest die Seite …';
+    setBusy(true);
+    els.statusText.textContent = 'Gemini liest die Seite …';
     els.status.hidden = false;
 
     try {
-      const data = await callBackend(s.backendUrl, { key: s.accessKey, url, provider, length });
+      // provider: 'gemini' hält die App auch mit einem noch nicht aktualisierten Backend lauffähig.
+      const data = await callBackend(s.backendUrl, { key: s.accessKey, url, provider: 'gemini', length });
       if (!data.ok) throw new Error(data.error || 'Unbekannter Fehler.');
-      showResult(provider, data, url);
+      showResult(data, url);
     } catch (e) {
       showError(e.message);
     } finally {
       els.status.hidden = true;
-      setBusy(false, btn);
+      setBusy(false);
     }
   }
 
@@ -166,11 +168,9 @@
     }
   }
 
-  function setBusy(busy, activeBtn) {
-    providerButtons.forEach((b) => {
-      b.disabled = busy;
-      b.classList.toggle('busy', busy && b === activeBtn);
-    });
+  function setBusy(busy) {
+    els.btnSummarize.disabled = busy;
+    els.btnSummarize.classList.toggle('busy', busy);
   }
 
   function resetOutput() {
@@ -185,10 +185,8 @@
     els.error.hidden = false;
   }
 
-  function showResult(provider, data, url) {
+  function showResult(data, url) {
     lastSummary = data.summary || '';
-    els.resultBadge.textContent = NAMES[provider];
-    els.resultBadge.className = 'badge ' + provider;
     els.resultTitle.textContent = data.title || els.pageTitle.textContent || '';
     els.resultTitle.hidden = !els.resultTitle.textContent;
     els.resultBody.innerHTML = renderMarkdown(lastSummary);

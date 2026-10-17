@@ -1,6 +1,6 @@
 # Kurzgefasst – Webseiten per „Teilen“ zusammenfassen
 
-In Chrome auf dem Handy: **Teilen → Kurzgefasst → Claude oder Gemini**.
+In Chrome auf dem Handy: **Teilen → Kurzgefasst** – die Zusammenfassung von Gemini startet sofort.
 
 ```
 Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal)
@@ -9,7 +9,7 @@ Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal
                      Apps-Script-Backend (dein Google-Konto)
                                 │  lädt Seitentext
                                 ▼
-                     Claude-API  oder  Gemini-API
+                          Gemini-API
 ```
 
 ## Aufbau dieses Repos
@@ -22,17 +22,13 @@ Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal
 
 1. **script.google.com** öffnen → *Neues Projekt* → Namen geben, z. B. „Kurzgefasst Backend“.
 2. Den Inhalt von `Code.gs` komplett in den Editor einfügen und speichern.
-3. **API-Schlüssel besorgen:**
-   - Claude: console.anthropic.com → *API Keys* → neuen Schlüssel anlegen (Guthaben aufladen).
-   - Gemini: aistudio.google.com → *Get API key*.
-     **Datenschutz:** Im kostenlosen Kontingent darf Google Eingaben zur Produktverbesserung nutzen.
-     Aktiviere die Abrechnung für das Projekt, dann gilt das nicht.
+3. **API-Schlüssel besorgen:** aistudio.google.com → *Get API key*.
+   **Datenschutz:** Im kostenlosen Kontingent darf Google Eingaben zur Produktverbesserung nutzen.
+   Aktiviere die Abrechnung für das Projekt, dann gilt das nicht.
 4. Links **Projekteinstellungen (Zahnrad) → Skripteigenschaften** → hinzufügen:
    | Eigenschaft | Wert |
    |---|---|
-   | `ANTHROPIC_API_KEY` | dein Claude-Schlüssel |
    | `GEMINI_API_KEY` | dein Gemini-Schlüssel |
-   | `CLAUDE_MODEL` *(optional)* | Standard: `claude-sonnet-5-5` (günstiger: `claude-haiku-5-5`) |
    | `GEMINI_MODEL` *(optional)* | Standard: `gemini-flash-latest` |
 5. Im Editor oben die Funktion **`zugangsschluesselErzeugen`** auswählen → *Ausführen* → Berechtigungen bestätigen.
    Im Ausführungsprotokoll steht dein **Zugangsschlüssel** – kopieren.
@@ -61,8 +57,8 @@ Handy (Chrome) ──Teilen──▶ Kurzgefasst-App (GitHub Pages, läuft lokal
 4. Fertig. „Kurzgefasst“ erscheint jetzt im **Teilen-Menü**.
 
 ## Benutzung
-Auf einer Seite in Chrome **⋮ → Teilen → Kurzgefasst** → *Kurz* oder *Ausführlich* wählen →
-**Claude** oder **Gemini** antippen.
+Auf einer Seite in Chrome **⋮ → Teilen → Kurzgefasst**. Die Kurzfassung startet sofort.
+Für die lange Fassung *Ausführlich* wählen und erneut **Zusammenfassen** antippen.
 
 ---
 
@@ -74,9 +70,8 @@ Auf einer Seite in Chrome **⋮ → Teilen → Kurzgefasst** → *Kurz* oder *Au
 - **API-Schlüssel** liegen ausschließlich in den Skripteigenschaften, nie im Code.
 - **Zugangsschlüssel** (zufällig, 64 Zeichen) schützt vor fremder Nutzung, dazu ein Limit von 30 Anfragen pro 10 Minuten.
 - **Alles über HTTPS**, Daten im Anfrage-Body. Die App hat eine strenge Content-Security-Policy.
-- **Was trotzdem jemand sieht:** Google (Apps Script ruft die Seite ab) und der gewählte KI-Anbieter
-  (verarbeitet den Inhalt). Die Claude-API nutzt API-Daten standardmäßig nicht zum Training,
-  die bezahlte Gemini-API ebenfalls nicht.
+- **Was trotzdem jemand sieht:** Google – Apps Script ruft die Seite ab, Gemini verarbeitet den Inhalt.
+  Die bezahlte Gemini-API nutzt Eingaben nicht zum Training, das kostenlose Kontingent schon.
 
 ## Grenzen
 - Seiten hinter **Login oder Paywall** kann das Backend nicht lesen.
@@ -88,10 +83,10 @@ Auf einer Seite in Chrome **⋮ → Teilen → Kurzgefasst** → *Kurz* oder *Au
 | App erscheint nicht im Teilen-Menü | Sie muss *installiert* sein (Schritt 3). Danach Chrome einmal schließen. Kann 1–2 Min. dauern. |
 | „Zugang verweigert“ | Zugangsschlüssel in den App-Einstellungen prüfen. |
 | „Unerwartete Antwort vom Backend“ | Bereitstellung muss *Zugriff: Jeder* haben; URL muss auf `/exec` enden. |
-| „Claude-/Gemini-Fehler (404)“ | Modellname in den Skripteigenschaften prüfen. |
+| „Gemini-Fehler (404)“ | Modellname `GEMINI_MODEL` in den Skripteigenschaften prüfen. |
 
 ## Änderungen später
 - **Backend geändert?** *Bereitstellen → Bereitstellungen verwalten → Bearbeiten → Version: Neue Version*.
   Die URL bleibt gleich.
-- **App geändert?** In `sw.js` die Zeile `const CACHE = 'kurzgefasst-v1'` hochzählen (v2, v3 …),
+- **App geändert?** In `sw.js` die Zeile `const CACHE = 'kurzgefasst-v2'` hochzählen (v3, v4 …),
   damit das Handy die neue Version lädt.
