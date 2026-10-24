@@ -11,6 +11,7 @@
  *   GROQ_API_KEY       API-Schlüssel von console.groq.com (kostenlos)
  *   CLAUDE_MODEL       optional, Standard: claude-sonnet-5-5
  *   GEMINI_MODEL       optional, Standard: gemini-flash-latest
+ *   GEMINI_FALLBACK_MODEL optional, Standard: gemini-flash-lite-latest (bei Überlastung)
  *   GROQ_MODEL         optional, Standard: openai/gpt-oss-120b
  *   GROQ_MAX_CHARS     optional, Standard: 18000 (Seitentext für Groq, wegen Gratis-Limit pro Minute)
  *
@@ -22,6 +23,7 @@
 const DEFAULTS = {
   CLAUDE_MODEL: 'claude-sonnet-5-5',
   GEMINI_MODEL: 'gemini-flash-latest',
+  GEMINI_FALLBACK_MODEL: 'gemini-flash-lite-latest',
   GROQ_MODEL: 'openai/gpt-oss-120b',
   GROQ_MAX_CHARS: 18000
 };
@@ -270,27 +272,58 @@ function callGemini_(prompt, props) {
   const key = props.getProperty('GEMINI_API_KEY');
   if (!key) throw new Error('Gemini ist nicht eingerichtet (GEMINI_API_KEY fehlt).');
 
-  const model = props.getProperty('GEMINI_MODEL') || DEFAULTS.GEMINI_MODEL;
-  const resp = UrlFetchApp.fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
-      method: 'post',
-      contentType: 'application/json',
-      muteHttpExceptions: true,
-      headers: { 'x-goog-api-key': key },
-      payload: JSON.stringify({
-        systemInstruction: { parts: [{ text: prompt.system }] },
-        contents: [{ role: 'user', parts: [{ text: prompt.user }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 4096 }
-      })
-    });
+  // Bei Überlastung (503/500) erst kurz warten und wiederholen, dann auf ein zweites Modell ausweichen.
+  const models = [
+    props.getProperty('GEMINI_MODEL') || DEFAULTS.GEMINI_MODEL,
+    props.getProperty('GEMINI_FALLBACK_MODEL') || DEFAULTS.GEMINI_FALLBACK_MODEL
+  ].filter(function (m, i, all) { return m && all.indexOf(m) === i; });
 
-  const data = parseJson_(resp.getContentText());
-  if (resp.getResponseCode() === 429) {
-    throw new Error('Gemini-Kontingent erschöpft – bitte Claude nehmen oder später erneut versuchen.');
+  // Die App wartet höchstens 90 s – daher nur neue Versuche starten, solange Zeit bleibt.
+  const deadline = Date.now() + 45000;
+  for (let m = 0; m < models.length; m++) {
+    for (let attempt = 0; attempt < 2 && Date.now() < deadline; attempt++) {
+      if (attempt > 0) Utilities.sleep(2000);
+      const result = geminiRequest_(models[m], prompt, key);
+      if (result.text) return result.text;
+      if (!result.overloaded) throw result.error;   // andere Fehler nicht wiederholen
+      if (result.timedOut) break;                    // nach Zeitüberschreitung gleich zum Ausweichmodell
+    }
   }
-  if (resp.getResponseCode() !== 200) {
-    throw new Error('Gemini-Fehler (' + resp.getResponseCode() + '): ' +
-      ((data && data.error && data.error.message) || 'unbekannt'));
+  throw new Error('Gemini ist gerade bei Google überlastet (auch das Ausweichmodell). ' +
+    'Bitte in ein paar Minuten erneut versuchen oder Groq nehmen.');
+}
+
+function geminiRequest_(model, prompt, key) {
+  let resp;
+  try {
+    resp = UrlFetchApp.fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+        method: 'post',
+        contentType: 'application/json',
+        muteHttpExceptions: true,
+        headers: { 'x-goog-api-key': key },
+        payload: JSON.stringify({
+          systemInstruction: { parts: [{ text: prompt.system }] },
+          contents: [{ role: 'user', parts: [{ text: prompt.user }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 8192 }
+        })
+      });
+  } catch (e) {
+    // Zeitüberschreitung o. Ä. – wie Überlastung behandeln
+    return { overloaded: true, timedOut: true, error: new Error('Gemini antwortet nicht (' + e.message + ').') };
+  }
+
+  const code = resp.getResponseCode();
+  const data = parseJson_(resp.getContentText());
+  const msg = (data && data.error && data.error.message) || 'unbekannt';
+  if (code === 503 || code === 500 || code === 504) {
+    return { overloaded: true, error: new Error('Gemini-Fehler (' + code + '): ' + msg) };
+  }
+  if (code === 429) {
+    return { error: new Error('Gemini-Kontingent erschöpft – bitte Groq nehmen oder später erneut versuchen.') };
+  }
+  if (code !== 200) {
+    return { error: new Error('Gemini-Fehler (' + code + '): ' + msg) };
   }
   const parts = (data.candidates && data.candidates[0] && data.candidates[0].content &&
     data.candidates[0].content.parts) || [];
@@ -300,9 +333,9 @@ function callGemini_(prompt, props) {
     .join('\n').trim();
   if (!text) {
     const reason = data.promptFeedback && data.promptFeedback.blockReason;
-    throw new Error(reason ? 'Gemini hat die Anfrage blockiert (' + reason + ').' : 'Gemini hat keine Zusammenfassung geliefert.');
+    return { error: new Error(reason ? 'Gemini hat die Anfrage blockiert (' + reason + ').' : 'Gemini hat keine Zusammenfassung geliefert.') };
   }
-  return text;
+  return { text: text };
 }
 
 function callGroq_(prompt, props) {
